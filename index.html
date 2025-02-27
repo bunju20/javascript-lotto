@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>🎱 행운의 로또</title>
+    <meta name="viewport" content="width=device-width" />
+    <title>Document</title>
+    <script type="module" crossorigin src="/javascript-lotto/assets/index-B9NPT5nt.js"></script>
+    <link rel="stylesheet" crossorigin href="/javascript-lotto/assets/index-COEFm6R1.css">
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="navbar__menu">
+      <h1>🎱 행운의 로또</h1>
+      </div>
+      <div class="lotto__body">
+        <div class="lotto__box">
+          <div class="lotto__box__title">
+          <h1>🎱 내 번호 당첨 확인 🎱</h1>
+          </div>
+          <p>구입할 금액을 입력해 주세요</p>
+          <div class="lotto__input">
+           <input class="input__money" type="text" id="userInput" placeholder="금액">
+        <button class="lotto__input__btn" onclick="alert('입력값: ' + document.getElementById('userInput').value)">구입</button>
+          </div>
+        <p>총 7개를 구매하였습니다.</p>
+        <div class="lotto__list">
+
+        </div>
+        <div class="lotto__middle" style="display: none;">
+        <p>지난 주 당첨번호 6개와 보너스 번호 1개를 입력해주세요.</p>
+
+        <div class="target__bonus__box">
+          <div class="target__lotto__box">
+            <p>당첨 번호</p>
+            <div class="target__lottos">
+              <input class="one__numbers__input" type="text">
+              <input class="one__numbers__input" type="text">
+              <input class="one__numbers__input" type="text">
+              <input class="one__numbers__input" type="text">
+              <input class="one__numbers__input" type="text">
+              <input class="one__numbers__input" type="text">
+            </div>
+          </div>
+          <div class="bonus__number">
+            <p>보너스 번호</p>
+            <input class="one__numbers__input" type="text" >
+          </div>
+        </div>
+        <div class="result__btn__box">
+        <button class="result__btn">
+          결과 확인하기
+        </button>
+        </div>
+
+        </div>
+        </div>
+      </div>
+      <div class="lotto__bottom">
+        <p>Copyright 2023. woowacourse</p>
+      </div>
+    </div>
+<div class="modal-overlay" id="resultModal" style="display: none;">
+  <div class="modal-content">
+    <h2 class="modal-title">🏆 당첨 통계 🏆</h2>
+    <div class="modal-divider"></div>
+    <table class="result-table">
+      <thead>
+        <tr>
+          <th>일치 갯수</th>
+          <th>당첨금</th>
+          <th>당첨 갯수</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>3개 일치</td>
+          <td>5,000원</td>
+          <td id="match-3">0개</td>
+        </tr>
+        <tr>
+          <td>4개 일치</td>
+          <td>50,000원</td>
+          <td id="match-4">0개</td>
+        </tr>
+        <tr>
+          <td>5개 일치</td>
+          <td>1,500,000원</td>
+          <td id="match-5">0개</td>
+        </tr>
+        <tr>
+          <td>5개+보너스 볼</td>
+          <td>30,000,000원</td>
+          <td id="match-5-bonus">0개</td>
+        </tr>
+        <tr>
+          <td>6개 일치</td>
+          <td>2,000,000,000원</td>
+          <td id="match-6">0개</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <p id="total-return-rate">당신의 총 수익률은 0%입니다.</p>
+    
+    <button id="restart-button" class="restart-btn">다시 시작하기</button>
+  </div>
+</div>
+  </body>
+</html>
