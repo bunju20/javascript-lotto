@@ -38,6 +38,7 @@
 const Constants = Object.freeze({
   LOTTO: {
     UNIT: 1e3,
+    MAX_MONEY: 1e5,
     NUMBER_LENGTH: 6,
     MAX_NUMBER: 45,
     MIN_NUMBER: 1,
@@ -73,7 +74,8 @@ const Constants = Object.freeze({
     BONUS_NUMBER_TYPE: "[ERROR] 보너스 번호는 숫자이어야 한다.",
     BONUS_NUMBER_RANGE: "[ERROR] 보너스 번호의 범위는 1~45이어야한다.",
     BONUS_NUMBER_DUPLICATE: "[ERROR] 보너스 번호는 당첨번호와 중복될수 없다.",
-    RESTART_STRING: "[ERROR] 다시 시작하기 위한 입력은 y또는 n이어야 한다."
+    RESTART_STRING: "[ERROR] 다시 시작하기 위한 입력은 y또는 n이어야 한다.",
+    MONEY_TO_BIG: "[ERROR] 로또 구입금액은 10만원을 넘을수 없다."
   }
 });
 class Lotto {
@@ -198,6 +200,8 @@ class Validator {
       throw new Error(Constants.ERROR.PRICE_TYPE);
     if (!NumberChecker.isUnitNumber(Number(priceString), Constants.LOTTO.UNIT))
       throw new Error(Constants.ERROR.PRICE_UNIT);
+    if (NumberChecker.isMoreThan(Number(priceString), Constants.LOTTO.MAX_MONEY))
+      throw new Error(Constants.ERROR.MONEY_TO_BIG);
   }
   static isTargetNumber(targetNumberString) {
     const targetArray = targetNumberString.split(Constants.OPERATOR.SEPARATOR).map((a) => a.trim());
@@ -239,7 +243,27 @@ class LottoInput {
       "click",
       this.handlePurchase.bind(this)
     );
+    this.inputElement.addEventListener(
+      "keydown",
+      this.handleKeyDown.bind(this)
+    );
     this.purchaseMessageElement.style.display = "none";
+  }
+  handleKeyDown(event) {
+    if (event.key === "Enter" || event.keyCode === 13) {
+      event.preventDefault();
+      if (!this.buttonElement.disabled) {
+        this.handlePurchase();
+      }
+    }
+  }
+  disableButton() {
+    this.buttonElement.disabled = true;
+    this.buttonElement.style.backgroundColor = "#cccccc";
+  }
+  enableButton() {
+    this.buttonElement.disabled = false;
+    this.buttonElement.style.backgroundColor = "";
   }
   handlePurchase() {
     try {
@@ -248,6 +272,7 @@ class LottoInput {
       const lottoNum = Number(rawPriceString) / Constants.LOTTO.UNIT;
       this.purchaseMessageElement.style.display = "block";
       this.purchaseMessageElement.textContent = `총 ${lottoNum}개를 구매하였습니다.`;
+      this.disableButton();
       this.onPurchase(lottoNum);
     } catch (error) {
       alert(error.message);
@@ -256,11 +281,20 @@ class LottoInput {
   reset() {
     this.inputElement.value = "";
     this.purchaseMessageElement.style.display = "none";
+    this.enableButton();
   }
 }
 class LottoList {
   constructor() {
     this.container = DomHelper.querySelector(".lotto__list");
+    this.maxHeight = "300px";
+    this.setupContainer();
+  }
+  setupContainer() {
+    this.container.style.maxHeight = this.maxHeight;
+    this.container.style.overflowY = "scroll";
+    this.container.style.borderRadius = "4px";
+    this.container.style.padding = "10px";
   }
   displayLottos(lottos) {
     this.container.innerHTML = "";
@@ -298,9 +332,36 @@ class WinningNumbers {
   init() {
     this.middleSection.style.display = "none";
     this.resultButton.addEventListener("click", this.handleResult.bind(this));
+    this.winningNumberInputs.forEach((input, index) => {
+      input.addEventListener("keydown", (event) => {
+        this.handleInputKeydown(event, index);
+      });
+    });
+    this.bonusNumberInput.addEventListener("keydown", (event) => {
+      this.handleBonusInputKeydown(event);
+    });
+  }
+  handleInputKeydown(event, index) {
+    if (event.key === "Enter" || event.key === "ArrowRight" || event.key === " ") {
+      event.preventDefault();
+      if (index < this.winningNumberInputs.length - 1) {
+        this.winningNumberInputs[index + 1].focus();
+      } else {
+        this.bonusNumberInput.focus();
+      }
+    }
+  }
+  handleBonusInputKeydown(event) {
+    if (event.key === "Enter" || event.key === "ArrowRight" || event.key === " ") {
+      event.preventDefault();
+      this.resultButton.focus();
+    }
   }
   show() {
     this.middleSection.style.display = "block";
+    if (this.winningNumberInputs.length > 0) {
+      this.winningNumberInputs[0].focus();
+    }
   }
   hide() {
     this.middleSection.style.display = "none";
@@ -346,6 +407,7 @@ class ResultModal {
     this.match6Element = DomHelper.querySelector("#match-6");
     this.totalReturnRateElement = DomHelper.querySelector("#total-return-rate");
     this.restartButton = DomHelper.querySelector("#restart-button");
+    this.closeButton = DomHelper.querySelector("#closeModalBtn");
     this.onRestart = onRestart;
     this.init();
   }
@@ -354,6 +416,13 @@ class ResultModal {
       this.hide();
       this.onRestart();
     });
+    if (this.closeButton) {
+      this.closeButton.addEventListener("click", () => {
+        this.hide();
+      });
+    } else {
+      this.addCloseButton();
+    }
   }
   displayResult(gameResult, earningRate) {
     this.match3Element.textContent = `${gameResult["5"]}개`;
