@@ -55,6 +55,18 @@ const Constants = Object.freeze({
       THIRD: 15e5,
       SECOND: 3e7,
       FIRST: 2e9
+    },
+    RESULT_INDEX: {
+      MATCH6: "1",
+      // 6개 일치
+      MATCH5_BONUS: "2",
+      // 5개+보너스 일치
+      MATCH5: "3",
+      // 5개 일치
+      MATCH4: "4",
+      // 4개 일치
+      MATCH3: "5"
+      // 3개 일치
     }
   },
   OPERATOR: {
@@ -75,7 +87,8 @@ const Constants = Object.freeze({
     BONUS_NUMBER_RANGE: "[ERROR] 보너스 번호의 범위는 1~45이어야한다.",
     BONUS_NUMBER_DUPLICATE: "[ERROR] 보너스 번호는 당첨번호와 중복될수 없다.",
     RESTART_STRING: "[ERROR] 다시 시작하기 위한 입력은 y또는 n이어야 한다.",
-    MONEY_TO_BIG: "[ERROR] 로또 구입금액은 10만원을 넘을수 없다."
+    MONEY_TO_BIG: "[ERROR] 로또 구입금액은 10만원을 넘을수 없다.",
+    MONEY_TO_SMALL: "[ERROR] 로또 구입금액은 1000원 이상이어야 한다."
   }
 });
 class Lotto {
@@ -202,6 +215,8 @@ class Validator {
       throw new Error(Constants.ERROR.PRICE_UNIT);
     if (NumberChecker.isMoreThan(Number(priceString), Constants.LOTTO.MAX_MONEY))
       throw new Error(Constants.ERROR.MONEY_TO_BIG);
+    if (NumberChecker.isLessThan(Number(priceString), Constants.LOTTO.UNIT))
+      throw new Error(Constants.ERROR.MONEY_TO_SMALL);
   }
   static isTargetNumber(targetNumberString) {
     const targetArray = targetNumberString.split(Constants.OPERATOR.SEPARATOR).map((a) => a.trim());
@@ -322,9 +337,11 @@ class WinningNumbers {
     this.winningNumberInputs = DomHelper.querySelectorAll(
       ".target__lottos .one__numbers__input"
     );
+    this.winningNumberContainer = DomHelper.querySelector(".target__lottos");
     this.bonusNumberInput = DomHelper.querySelector(
       ".bonus__number .one__numbers__input"
     );
+    this.bonusNumberContainer = DomHelper.querySelector(".bonus__number");
     this.resultButton = DomHelper.querySelector(".result__btn");
     this.onResult = onResult;
     this.init();
@@ -332,30 +349,34 @@ class WinningNumbers {
   init() {
     this.middleSection.style.display = "none";
     this.resultButton.addEventListener("click", this.handleResult.bind(this));
-    this.winningNumberInputs.forEach((input, index) => {
-      input.addEventListener("keydown", (event) => {
-        this.handleInputKeydown(event, index);
-      });
-    });
-    this.bonusNumberInput.addEventListener("keydown", (event) => {
-      this.handleBonusInputKeydown(event);
-    });
+    this.winningNumberContainer.addEventListener(
+      "keydown",
+      this.handleWinningInputKeydown.bind(this)
+    );
+    this.bonusNumberContainer.addEventListener(
+      "keydown",
+      this.handleBonusInputKeydown.bind(this)
+    );
   }
-  handleInputKeydown(event, index) {
-    if (event.key === "Enter" || event.key === "ArrowRight" || event.key === " ") {
-      event.preventDefault();
-      if (index < this.winningNumberInputs.length - 1) {
-        this.winningNumberInputs[index + 1].focus();
-      } else {
-        this.bonusNumberInput.focus();
-      }
+  handleWinningInputKeydown(event) {
+    if (!event.target.classList.contains("one__numbers__input")) return;
+    if (event.key !== "Enter" && event.key !== "ArrowRight" && event.key !== " ")
+      return;
+    event.preventDefault();
+    const inputs = Array.from(this.winningNumberInputs);
+    const currentIndex = inputs.indexOf(event.target);
+    if (currentIndex < this.winningNumberInputs.length - 1) {
+      this.winningNumberInputs[currentIndex + 1].focus();
+    } else {
+      this.bonusNumberInput.focus();
     }
   }
   handleBonusInputKeydown(event) {
-    if (event.key === "Enter" || event.key === "ArrowRight" || event.key === " ") {
-      event.preventDefault();
-      this.resultButton.focus();
-    }
+    if (!event.target.classList.contains("one__numbers__input")) return;
+    if (event.key !== "Enter" && event.key !== "ArrowRight" && event.key !== " ")
+      return;
+    event.preventDefault();
+    this.resultButton.focus();
   }
   show() {
     this.middleSection.style.display = "block";
@@ -371,30 +392,33 @@ class WinningNumbers {
       if (!this.onResult) {
         throw new Error("로또를 먼저 구매해주세요.");
       }
-      const winningNumbers = [];
-      this.winningNumberInputs.forEach((input) => {
-        if (!input.value) {
-          throw new Error("당첨 번호를 모두 입력해주세요.");
-        }
-        winningNumbers.push(Number(input.value));
-      });
-      Validator.isTargetNumber(winningNumbers.join(", "));
-      if (!this.bonusNumberInput.value) {
-        throw new Error("보너스 번호를 입력해주세요.");
-      }
-      const bonusNumber = Number(this.bonusNumberInput.value);
-      Validator.isBonusNumber(bonusNumber, winningNumbers);
+      const { winningNumbers, bonusNumber } = this.validateWinningNumbers();
       this.onResult(winningNumbers, bonusNumber);
     } catch (error) {
       alert(error.message);
     }
   }
   reset() {
-    this.winningNumberInputs.forEach((input) => {
-      input.value = "";
-    });
-    this.bonusNumberInput.value = "";
+    [...this.winningNumberInputs, this.bonusNumberInput].forEach(
+      (input) => input.value = ""
+    );
     this.hide();
+  }
+  validateWinningNumbers() {
+    const winningNumbers = [];
+    this.winningNumberInputs.forEach((input) => {
+      if (!input.value) {
+        throw new Error("당첨 번호를 모두 입력해주세요.");
+      }
+      winningNumbers.push(Number(input.value));
+    });
+    Validator.isTargetNumber(winningNumbers.join(", "));
+    if (!this.bonusNumberInput.value) {
+      throw new Error("보너스 번호를 입력해주세요.");
+    }
+    const bonusNumber = Number(this.bonusNumberInput.value);
+    Validator.isBonusNumber(bonusNumber, winningNumbers);
+    return { winningNumbers, bonusNumber };
   }
 }
 class ResultModal {
@@ -409,35 +433,61 @@ class ResultModal {
     this.restartButton = DomHelper.querySelector("#restart-button");
     this.closeButton = DomHelper.querySelector("#closeModalBtn");
     this.onRestart = onRestart;
+    this.matchElements = {
+      MATCH3: this.match3Element,
+      MATCH4: this.match4Element,
+      MATCH5: this.match5Element,
+      MATCH5_BONUS: this.match5BonusElement,
+      MATCH6: this.match6Element
+    };
     this.init();
   }
   init() {
-    this.restartButton.addEventListener("click", () => {
+    var _a;
+    this.restartButton.addEventListener("click", this.handleRestart.bind(this));
+    (_a = this.closeButton) == null ? void 0 : _a.addEventListener("click", this.handleClose.bind(this));
+    if (!this.closeButton) this.addCloseButton();
+    document.addEventListener("keydown", this.handleKeyPress.bind(this));
+  }
+  handleKeyPress(event) {
+    if (event.key === "Escape" && this.resultModal.style.display === "flex") {
       this.hide();
-      this.onRestart();
-    });
-    if (this.closeButton) {
-      this.closeButton.addEventListener("click", () => {
-        this.hide();
-      });
-    } else {
-      this.addCloseButton();
     }
   }
+  handleRestart() {
+    this.hide();
+    this.onRestart();
+  }
+  handleClose() {
+    this.hide();
+  }
   displayResult(gameResult, earningRate) {
-    this.match3Element.textContent = `${gameResult["5"]}개`;
-    this.match4Element.textContent = `${gameResult["4"]}개`;
-    this.match5Element.textContent = `${gameResult["3"]}개`;
-    this.match5BonusElement.textContent = `${gameResult["2"]}개`;
-    this.match6Element.textContent = `${gameResult["1"]}개`;
+    const { RESULT_INDEX } = Constants.LOTTO;
+    Object.entries(this.matchElements).forEach(([matchType, element]) => {
+      const index = RESULT_INDEX[matchType];
+      const count = gameResult[index] || 0;
+      element.textContent = `${count}개`;
+    });
     this.totalReturnRateElement.textContent = `당신의 총 수익률은 ${earningRate}%입니다.`;
-    this.resultModal.style.display = "flex";
+    this.show();
   }
   show() {
-    this.resultModal.style.display = "flex";
+    this.resultModal.classList.add("modal-visible");
   }
   hide() {
-    this.resultModal.style.display = "none";
+    this.resultModal.classList.remove("modal-visible");
+  }
+  addCloseButton() {
+    const closeBtn = document.createElement("button");
+    closeBtn.id = "closeModalBtn";
+    closeBtn.textContent = "닫기";
+    closeBtn.classList.add("close-button");
+    closeBtn.addEventListener("click", () => {
+      this.hide();
+    });
+    const modalHeader = this.resultModal.querySelector(".modal-header") || this.resultModal;
+    modalHeader.appendChild(closeBtn);
+    this.closeButton = closeBtn;
   }
 }
 class WebApp {
